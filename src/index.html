@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GraphQL Profile Page</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>My Profile</h1>
+      <nav>
+        <ul>
+          <li><a href="#">Home</a></li>
+          <li><a href="#">Login</a></li>
+          <li><a href="#">Logout</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    <main>
+      <section class="user-info">
+        <h2>Basic User Information</h2>
+        <p>Username: <span id="username"></span></p>
+        <p>Email: <span id="email"></span></p>
+      </section>
+      
+      <section class="xp-amount">
+        <h2>XP Amount</h2>
+        <p>Total XP: <span id="total-xp"></span></p>
+      </section>
+      
+      <section class="grades">
+        <h2>Grades</h2>
+        <ul id="grades-list">
+          <!-- Grades will be dynamically added here -->
+        </ul>
+      </section>
+      
+      <section class="stats">
+        <h2>Statistics</h2>
+        <div class="graph-container">
+          <h3>XP Over Time</h3>
+          <svg id="xp-graph"></svg>
+        </div>
+        
+        <div class="graph-container">
+          <h3>Audit Ratio</h3>
+          <svg id="audit-graph"></svg>
+        </div>
+      </section>
+    </main>
+    
+    <footer>
+      <p>&copy; 2023 GraphQL Profile Page</p>
+    </footer>
+  </div>
+  
+  <script src="script.js"></script>
+</body>
+</html>
