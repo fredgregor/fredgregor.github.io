@@ -1,62 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GraphQL Profile Page</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>GraphQL KOOD|JÕHVI</title>
+    <script src="app.js" defer></script>
+    <script src="charts.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>My Profile</h1>
-      <nav>
-        <ul>
-          <li><a href="#">Home</a></li>
-          <li><a href="#">Login</a></li>
-          <li><a href="#">Logout</a></li>
-        </ul>
-      </nav>
-    </header>
-    
-    <main>
-      <section class="user-info">
-        <h2>Basic User Information</h2>
-        <p>Username: <span id="username"></span></p>
-        <p>Email: <span id="email"></span></p>
-      </section>
-      
-      <section class="xp-amount">
-        <h2>XP Amount</h2>
-        <p>Total XP: <span id="total-xp"></span></p>
-      </section>
-      
-      <section class="grades">
-        <h2>Grades</h2>
-        <ul id="grades-list">
-          <!-- Grades will be dynamically added here -->
-        </ul>
-      </section>
-      
-      <section class="stats">
-        <h2>Statistics</h2>
-        <div class="graph-container">
-          <h3>XP Over Time</h3>
-          <svg id="xp-graph"></svg>
+    <div class="container">
+        <!--LOGIN FORM-->
+        <div id="login-container">
+            <form id="login" class="loginPage">
+                <h3 class="titleLogin">Login with <span class="koodColor">kood</span><span class="johviColor">/jõhvi credentials</span></h3>
+                <input class="usernameOrEmail" placeholder="Username or Email" required>
+                <input class="password" type="password" placeholder="Password" required>
+                <button class="login" type="submit">Login</button>
+                <div class="errorMsg"></div>
+            </form>
         </div>
-        
-        <div class="graph-container">
-          <h3>Audit Ratio</h3>
-          <svg id="audit-graph"></svg>
+
+        <!--MAIN PROFILE PAGE-->
+        <div id="main-container" style="display: none;">
+            <header>
+                <h1>My Profile</h1>
+                <div class="navBar">
+                    <button id="navBarWelcomeName"></button>
+                    <button class="logOutBtn" onclick="logOut()" type="button">LOGOUT</button>
+                </div>
+            </header>
+            <main>
+                <section class="user-info">
+                    <h2>Basic User Information</h2>
+                    <p>Username: <span id="username"></span></p>
+                    <p>Email: <span id="email"></span></p>
+                </section>
+                
+                <section class="xp-amount">
+                    <h2>XP Amount</h2>
+                    <p>Total XP: <span id="total-xp"></span></p>
+                </section>
+                
+                <section class="grades">
+                    <h2>Grades</h2>
+                    <ul id="grades-list">
+                        <!-- Grades will be dynamically added here -->
+                    </ul>
+                </section>
+                
+                <section class="stats">
+                    <h2>Statistics</h2>
+                    <div class="graph-container">
+                        <h3>XP Over Time</h3>
+                        <svg id="xp-graph"></svg>
+                    </div>
+                    
+                    <div class="graph-container">
+                        <h3>Audit Ratio</h3>
+                        <svg id="audit-graph"></svg>
+                    </div>
+                </section>
+            </main>
+            <footer>
+                <p>&copy; 2023 GraphQL Profile Page</p>
+            </footer>
         </div>
-      </section>
-    </main>
-    
-    <footer>
-      <p>&copy; 2023 GraphQL Profile Page</p>
-    </footer>
-  </div>
-  
-  <script src="script.js"></script>
+    </div>
+
+    <script>
+        // JavaScript to handle login and toggle visibility
+        document.getElementById('login').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+            const username = document.querySelector(".usernameOrEmail").value;
+            const password = document.querySelector(".password").value;
+
+            // Call the login function from app.js
+            login(username, password)
+                .then(() => {
+                    // If login is successful:
+                    document.getElementById('login-container').style.display = 'none';
+                    document.getElementById('main-container').style.display = 'block';
+                    getUserData(); // Load user data after successful login
+                })
+                .catch((error) => {
+                    document.querySelector('.errorMsg').textContent = error.message;
+                });
+        });
+    </script>
 </body>
 </html>
