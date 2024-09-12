@@ -17,7 +17,7 @@ function getRank(userLevel) {
     }
   }
   
-  function cleanTopSkillDublicates(data) {
+  /* function cleanTopSkillDublicates(data) {
     const dataArray = data.data.transaction;
     const highest = {};
     // Find the highest amount for each skill type
@@ -32,7 +32,7 @@ function getRank(userLevel) {
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5);
     return uniqueData;
-  }
+  }*/
   
   function transformSkillTypes(dataArray) {
     const skillMap = {

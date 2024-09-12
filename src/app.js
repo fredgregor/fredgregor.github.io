@@ -84,6 +84,29 @@ function loginPage() {
         });
 }
 
+function transformSkillTypes(dataArray) {
+    const skillMap = {
+        go: "GoLang",
+        js: "Javascript",
+        html: "Html",
+        css: "Css",
+        docker: "Docker",
+        algo: "Algorithms",
+        "front-end": "Frontend",
+        "back-end": "Backend",
+        stats: "Statistics",
+        game: "Game",
+    };
+
+    return dataArray.map((obj) => {
+        const formatted = obj.type.slice(6); // Remove the "skill_" prefix
+        return {
+            ...obj,
+            type: skillMap[formatted] || formatted, // Replace with the mapped value or keep original
+        };
+    });
+}
+
 // Function to get user data
 function getUserData() {
     displayMainPage();
@@ -94,6 +117,19 @@ function getUserData() {
             console.error(`function ${func.name}: ${err.message}`);
         });
     });
+}
+
+// Function to display the main page and hide the login page
+function displayMainPage() {
+    const loginPage = document.querySelector(".loginPage");
+    const mainPage = document.getElementById("main-container"); // Updated to use ID
+
+    if (loginPage && mainPage) {
+        loginPage.style.display = "none";
+        mainPage.style.display = "block";
+    } else {
+        console.error("Error: .loginPage or #main-container element not found.");
+    }
 }
 
 // Function to display user profile
@@ -281,20 +317,26 @@ async function displayTopSkills() {
         }`;
 
     const data = await fetchQuery(topSkillsQuery);
-    const cleanData = cleanTopSkillDublicates(data);
     createPieChart(transformSkillTypes(cleanData)); // Call the createPieChart function from charts.js
 }
 
 // Function to display the main page and hide the login page
 function displayMainPage() {
-    document.querySelector(".loginPage").style.display = "none";
-    document.querySelector(".mainPage").style.display = "block";
+    const loginPage = document.querySelector(".loginPage");
+    const mainPage = document.getElementById("main-container"); // Updated to use ID
+
+    if (loginPage && mainPage) {
+        loginPage.style.display = "none";
+        mainPage.style.display = "block";
+    } else {
+        console.error("Error: .loginPage or #main-container element not found.");
+    }
 }
 
 // Function to log out the user
 function logOut() {
     document.querySelector(".loginPage").style.display = "flex";
-    document.querySelector(".mainPage").style.display = "none";
+    document.querySelector("#main-container").style.display = "none"; // Use ID here
     document.querySelector(".errorMsg").textContent = "";
     localStorage.removeItem("jwt");
 }
