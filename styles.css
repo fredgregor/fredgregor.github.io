@@ -1,0 +1,34 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.page {
+    padding: 20px;
+    max-width: 400px;
+    margin: auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.hidden {
+    display: none;
+}
+
+.error-message {
+    color: red;
+}
+
+.logout-confirmation {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #4CAF50; /* Green background */
+    color: white; /* White text */
+    padding: 15px;
+    border-radius: 5px;
+    z-index: 1000; /* Ensure it appears above other content */
+    transition: opacity 0.5s ease; /* Smooth fade out */
+}
