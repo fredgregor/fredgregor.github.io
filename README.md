@@ -31,4 +31,4 @@ To run this project, you will need:
 - A modern web browser (Chrome, Firefox, etc.)
 
 ## Running the project
-Open the link to (the github page)[https://fredgregor.github.io./]
+Open the link to [the github page](https://fredgregor.github.io./)
