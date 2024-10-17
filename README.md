@@ -30,11 +30,5 @@ To run this project, you will need:
 
 - A modern web browser (Chrome, Firefox, etc.)
 
-## Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/user-profile-page.git
-   cd user-profile-page
-
-2. **Open the index.html file in your preferred web browser.**
+## Running the project
+Open the link to (the github page)[https://fredgregor.github.io./]
