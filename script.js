@@ -1,11 +1,12 @@
+let jwtToken = '';
 const loginForm = document.getElementById('login-form');
 const userInfoDiv = document.getElementById('user-info');
 const loginPage = document.getElementById('login-page');
 const mainPage = document.getElementById('main-page');
 const logoutButton = document.getElementById('logout-button');
 const loginError = document.getElementById('login-error');
-
-let jwtToken = '';
+const encodedToken = "your-encoded-token-here";
+fetchUserData(encodedToken);
 
 loginForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -13,6 +14,7 @@ loginForm.addEventListener('submit', async (event) => {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
+    // We're not using base64URLEncode anymore, just use btoa for Basic Auth
     const credentials = btoa(`${username}:${password}`);
 
     try {
@@ -25,24 +27,47 @@ loginForm.addEventListener('submit', async (event) => {
         });
 
         if (!response.ok) {
-            throw new Error('Invalid credentials');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        jwtToken = data.token; // Assuming the token is in the response
+        console.log("Full response data:", JSON.stringify(data, null, 2));
 
-        loginPage.classList.add('hidden');
-        mainPage.classList.remove('hidden');
+        // Check for token in different possible locations
+        let token = data.token || data.access_token || data.jwt;
+        if (typeof data === 'string' && data.startsWith('ey')) {
+            // If the entire response is the token
+            token = data;
+        } else if (data.data && data.data.token) {
+            // If token is nested in a 'data' object
+            token = data.data.token;
+        }
 
-         // Show login confirmation message
-         showLoginConfirmation("Login successful!");
-         
-        fetchUserData();
-        
+        if (token) {
+            jwtToken = token;
+            console.log("JWT Token found:", jwtToken);
+            loginPage.classList.add('hidden');
+            mainPage.classList.remove('hidden');
+            showLoginConfirmation("Login successful!");
+            await fetchUserData(); // Make sure to await this
+        } else {
+            throw new Error('Token not found in response');
+        }
     } catch (error) {
+        console.error("Login error:", error);
         loginError.textContent = error.message;
     }
 });
+
+function decodeJwt(token) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+}
 
 function showLoginConfirmation(message) {
     // Create a div for the confirmation message
@@ -95,6 +120,11 @@ function showLogoutConfirmation(message) {
 
 async function fetchUserData() {
     try {
+        if (!jwtToken) {
+            console.error("No JWT token available");
+            return; // Exit the function if no token is available
+        }
+
         const response = await fetch('https://01.kood.tech/api/graphql-engine/v1/graphql', {
             method: 'POST',
             headers: {
@@ -104,24 +134,31 @@ async function fetchUserData() {
             body: JSON.stringify({
                 query: `
                     query {
-                        userProfile { 
-                            id 
-                            username 
-                            xp 
-                            grades 
-                            audits 
-                            skills 
+                        user {
+                            id
+                            login
+                            firstName
+                            lastName
                         }
                     }
                 `
             })
         });
 
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const result = await response.json();
-        displayUserData(result.data.userProfile);
-        
+        console.log("User data:", result);
+
+        if (result.data && result.data.user) {
+            displayUserData(result.data.user);
+        } else {
+            console.error("Unexpected response structure:", result);
+        }
     } catch (error) {
-        console.error(error);
+        console.error("Error fetching user data:", error);
     }
 }
 
