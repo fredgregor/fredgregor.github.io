@@ -5,8 +5,6 @@ const loginPage = document.getElementById('login-page');
 const mainPage = document.getElementById('main-page');
 const logoutButton = document.getElementById('logout-button');
 const loginError = document.getElementById('login-error');
-const encodedToken = "your-encoded-token-here";
-fetchUserData(encodedToken);
 
 loginForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -14,7 +12,6 @@ loginForm.addEventListener('submit', async (event) => {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    // We're not using base64URLEncode anymore, just use btoa for Basic Auth
     const credentials = btoa(`${username}:${password}`);
 
     try {
@@ -33,13 +30,10 @@ loginForm.addEventListener('submit', async (event) => {
         const data = await response.json();
         console.log("Full response data:", JSON.stringify(data, null, 2));
 
-        // Check for token in different possible locations
         let token = data.token || data.access_token || data.jwt;
         if (typeof data === 'string' && data.startsWith('ey')) {
-            // If the entire response is the token
             token = data;
         } else if (data.data && data.data.token) {
-            // If token is nested in a 'data' object
             token = data.data.token;
         }
 
@@ -49,7 +43,7 @@ loginForm.addEventListener('submit', async (event) => {
             loginPage.classList.add('hidden');
             mainPage.classList.remove('hidden');
             showLoginConfirmation("Login successful!");
-            await fetchUserData(); // Make sure to await this
+            await fetchUserData();
         } else {
             throw new Error('Token not found in response');
         }
@@ -70,21 +64,18 @@ function decodeJwt(token) {
 }
 
 function showLoginConfirmation(message) {
-    // Create a div for the confirmation message
     const confirmationDiv = document.createElement('div');
-    confirmationDiv.className = 'logout-confirmation'; // Use the same class name for styling
+    confirmationDiv.className = 'logout-confirmation';
     confirmationDiv.textContent = message;
 
-    // Append the message to the body
     document.body.appendChild(confirmationDiv);
 
-    // Set a timer to remove the message after 3 seconds
     setTimeout(() => {
-        confirmationDiv.style.opacity = 0; // Fade out effect
+        confirmationDiv.style.opacity = 0;
         setTimeout(() => {
-            confirmationDiv.remove(); // Remove from DOM after fade out
-        }, 500); // Wait for fade out to complete
-    }, 3000); // Display for 3 seconds
+            confirmationDiv.remove();
+        }, 500);
+    }, 3000);
 }
 
 logoutButton.addEventListener('click', () => {
@@ -92,37 +83,32 @@ logoutButton.addEventListener('click', () => {
     mainPage.classList.add('hidden');
     loginPage.classList.remove('hidden');
 
-    // Clear the input fields
     document.getElementById('username').value = '';
     document.getElementById('password').value = '';
     
-     // Show logout confirmation message
-     showLogoutConfirmation("You have been logged out successfully.");
+    showLogoutConfirmation("You have been logged out successfully.");
 });
 
 function showLogoutConfirmation(message) {
-    // Create a div for the confirmation message
     const confirmationDiv = document.createElement('div');
     confirmationDiv.className = 'logout-confirmation';
     confirmationDiv.textContent = message;
 
-    // Append the message to the body
     document.body.appendChild(confirmationDiv);
 
-    // Set a timer to remove the message after 3 seconds
     setTimeout(() => {
-        confirmationDiv.style.opacity = 0; // Fade out effect
+        confirmationDiv.style.opacity = 0;
         setTimeout(() => {
-            confirmationDiv.remove(); // Remove from DOM after fade out
-        }, 500); // Wait for fade out to complete
-    }, 3000); // Display for 3 seconds
+            confirmationDiv.remove();
+        }, 500);
+    }, 3000);
 }
 
 async function fetchUserData() {
     try {
         if (!jwtToken) {
             console.error("No JWT token available");
-            return; // Exit the function if no token is available
+            return;
         }
 
         const response = await fetch('https://01.kood.tech/api/graphql-engine/v1/graphql', {
@@ -139,6 +125,11 @@ async function fetchUserData() {
                             login
                             firstName
                             lastName
+                            email
+                            auditRatio
+                            totalUp
+                            totalDown
+                            campus
                         }
                     }
                 `
@@ -152,8 +143,8 @@ async function fetchUserData() {
         const result = await response.json();
         console.log("User data:", result);
 
-        if (result.data && result.data.user) {
-            displayUserData(result.data.user);
+        if (result.data && result.data.user && result.data.user.length > 0) {
+            displayUserData(result.data.user[0]);
         } else {
             console.error("Unexpected response structure:", result);
         }
@@ -164,11 +155,53 @@ async function fetchUserData() {
 
 function displayUserData(user) {
     userInfoDiv.innerHTML = `
-        <p>ID: ${user.id}</p>
-        <p>Username: ${user.username}</p>
-        <p>XP Amount: ${user.xp}</p>
-        <p>Grades: ${user.grades.join(', ')}</p>
-        <p>Audits: ${user.audits.join(', ')}</p>
-        <p>Skills: ${user.skills.join(', ')}</p>
+        <div class="user-details">
+            <p><strong>ID:</strong> ${user.id}</p>
+            <p><strong>Login:</strong> ${user.login}</p>
+            <p><strong>Name:</strong> ${user.firstName} ${user.lastName}</p>
+            <p><strong>Email:</strong> ${user.email}</p>
+            <p><strong>Campus:</strong> ${user.campus}</p>
+        </div>
+        <div class="user-stats">
+            <p><strong>Audit Ratio:</strong> ${user.auditRatio.toFixed(2)}</p>
+            <p><strong>Total XP Up:</strong> ${user.totalUp}</p>
+            <p><strong>Total XP Down:</strong> ${user.totalDown}</p>
+        </div>
     `;
+
+    createXPPieChart(user.totalUp, user.totalDown);
+}
+
+function createXPPieChart(totalUp, totalDown) {
+    const total = totalUp + totalDown;
+    const upPercentage = (totalUp / total) * 100;
+    const downPercentage = (totalDown / total) * 100;
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", "200");
+    svg.setAttribute("height", "200");
+    svg.setAttribute("viewBox", "0 0 100 100");
+
+    const upSlice = document.createElementNS(svgNS, "path");
+    upSlice.setAttribute("d", `M50,50 L50,0 A50,50 0 ${upPercentage > 50 ? 1 : 0},1 ${50 + 50 * Math.sin(upPercentage * 0.02 * Math.PI)},${50 - 50 * Math.cos(upPercentage * 0.02 * Math.PI)} Z`);
+    upSlice.setAttribute("fill", "#4CAF50");
+
+    const downSlice = document.createElementNS(svgNS, "path");
+    downSlice.setAttribute("d", `M50,50 L${50 + 50 * Math.sin(upPercentage * 0.02 * Math.PI)},${50 - 50 * Math.cos(upPercentage * 0.02 * Math.PI)} A50,50 0 ${downPercentage > 50 ? 1 : 0},1 50,0 Z`);
+    downSlice.setAttribute("fill", "#F44336");
+
+    svg.appendChild(upSlice);
+    svg.appendChild(downSlice);
+
+    const legend = document.createElement("div");
+    legend.innerHTML = `
+        <div><span style="color: #4CAF50;">■</span> XP Up: ${upPercentage.toFixed(1)}%</div>
+        <div><span style="color: #F44336;">■</span> XP Down: ${downPercentage.toFixed(1)}%</div>
+    `;
+
+    const container = document.getElementById("xp-chart-container");
+    container.innerHTML = "";
+    container.appendChild(svg);
+    container.appendChild(legend);
 }
