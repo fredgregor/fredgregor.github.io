@@ -44,6 +44,7 @@ loginForm.addEventListener('submit', async (event) => {
             mainPage.classList.remove('hidden');
             showLoginConfirmation("Login successful!");
             await fetchUserData();
+            await fetchXPData();
         } else {
             throw new Error('Token not found in response');
         }
@@ -130,9 +131,6 @@ async function fetchUserData() {
                             totalUp
                             totalDown
                             campus
-                            xps {
-                                amount
-                            }
                         }
                     }
                 `
@@ -144,12 +142,10 @@ async function fetchUserData() {
         }
 
         const result = await response.json();
-        console.log("User data and XP:", result);
+        console.log("User data:", result);
 
         if (result.data && result.data.user && result.data.user[0]) {
-            const userData = result.data.user[0];
-            displayUserData(userData);
-            processAndDisplayXPData(userData.xps);
+            displayUserData(result.data.user[0]);
         } else {
             console.error("Unexpected response structure:", result);
         }
@@ -160,18 +156,15 @@ async function fetchUserData() {
 
 function displayUserData(user) {
     userInfoDiv.innerHTML = `
-        <div class="user-details">
-            <p><strong>ID:</strong> ${user.id}</p>
-            <p><strong>Login:</strong> ${user.login}</p>
-            <p><strong>Name:</strong> ${user.firstName} ${user.lastName}</p>
-            <p><strong>Email:</strong> ${user.email}</p>
-            <p><strong>Campus:</strong> ${user.campus}</p>
-        </div>
-        <div class="user-stats">
-            <p><strong>Audit Ratio:</strong> ${user.auditRatio.toFixed(2)}</p>
-            <p><strong>Total XP Up:</strong> ${user.totalUp}</p>
-            <p><strong>Total XP Down:</strong> ${user.totalDown}</p>
-        </div>
+        <h2>User Profile</h2>
+        <p><strong>ID:</strong> ${user.id}</p>
+        <p><strong>Login:</strong> ${user.login}</p>
+        <p><strong>Name:</strong> ${user.firstName} ${user.lastName}</p>
+        <p><strong>Email:</strong> ${user.email}</p>
+        <p><strong>Campus:</strong> ${user.campus}</p>
+        <p><strong>Audit Ratio:</strong> ${user.auditRatio.toFixed(2)}</p>
+        <p><strong>Total XP Up:</strong> ${user.totalUp}</p>
+        <p><strong>Total XP Down:</strong> ${user.totalDown}</p>
     `;
 
     createXPPieChart(user.totalUp, user.totalDown);
@@ -211,43 +204,122 @@ function createXPPieChart(totalUp, totalDown) {
     container.appendChild(legend);
 }
 
-function processAndDisplayXPData(xps) {
-    const totalXP = xps.reduce((sum, xp) => sum + xp.amount, 0);
-    const xpCount = xps.length;
-    const averageXP = xpCount > 0 ? totalXP / xpCount : 0;
+async function fetchXPData() {
+    try {
+        if (!jwtToken) {
+            console.error("No JWT token available");
+            return;
+        }
 
-    const xpInfoDiv = document.getElementById('xp-info');
-    xpInfoDiv.innerHTML = `
-        <h3>XP Information</h3>
-        <p>Total XP: ${totalXP}</p>
-        <p>Number of XP entries: ${xpCount}</p>
-        <p>Average XP per entry: ${averageXP.toFixed(2)}</p>
-    `;
+        const response = await fetch('https://01.kood.tech/api/graphql-engine/v1/graphql', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${jwtToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                query: `
+                    query {
+                        transaction(
+                            where: {
+                                _and: [
+                                    {path: {_like: "/johvi/div-01/%"}},
+                                    {type: {_eq: "xp"}},
+                                    {path: {_nlike: "/johvi/div-01/piscine-js%"}}
+                                ]
+                            },
+                            order_by: {createdAt: asc}
+                        ) {
+                            amount
+                            createdAt
+                            path
+                        }
+                    }
+                `
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("XP data:", result);
+
+        if (result.data && result.data.transaction) {
+            createXPLineChart(result.data.transaction);
+        } else {
+            console.error("Unexpected response structure:", result);
+        }
+    } catch (error) {
+        console.error("Error fetching XP data:", error);
+    }
 }
 
-function createXPChart(xps) {
-    const ctx = document.getElementById('xp-chart').getContext('2d');
-    const amounts = xps.map(xp => xp.amount);
-    const labels = xps.map((_, index) => `Entry ${index + 1}`);
+function createXPLineChart(transactions) {
+    const ctx = document.getElementById('xpLineChart').getContext('2d');
 
+    // Process data for the chart
+    const chartData = transactions.map(t => ({
+        x: new Date(t.createdAt),
+        y: t.amount,
+        label: t.path.split('/').pop() // Get the last part of the path
+    }));
+
+    // Calculate cumulative XP
+    let cumulativeXP = 0;
+    const cumulativeData = chartData.map(d => {
+        cumulativeXP += d.y;
+        return { x: d.x, y: cumulativeXP, label: d.label };
+    });
+
+    // Create the chart
     new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: labels,
             datasets: [{
-                label: 'XP Amount',
-                data: amounts,
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
+                label: 'Cumulative XP',
+                data: cumulativeData,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1,
+                fill: false
             }]
         },
         options: {
+            responsive: true,
             scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'day'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
                 y: {
+                    title: {
+                        display: true,
+                        text: 'Cumulative XP'
+                    },
                     beginAtZero: true
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.raw.label}: ${context.raw.y} XP`;
+                        }
+                    }
                 }
             }
         }
     });
+
+    // Display total XP
+    const totalXP = cumulativeData[cumulativeData.length - 1].y;
+    const xpInfoDiv = document.getElementById('xp-info');
+    xpInfoDiv.innerHTML = `<h3>Total XP: ${totalXP}</h3>`;
 }

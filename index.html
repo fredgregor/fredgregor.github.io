@@ -6,6 +6,7 @@
     <title>User Profile</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -27,9 +28,15 @@
             <div id="user-info" class="profile-container">
                 <!-- User data will be inserted here by JavaScript -->
             </div>
-            <div id="xp-chart-container"></div>
+            <div id="xp-pie-chart-container">
+                <h3>XP Distribution</h3>
+                <div id="xp-chart-container"></div>
+            </div>
+            <div id="xp-line-chart-container">
+                <h3>XP Progression</h3>
+                <canvas id="xpLineChart"></canvas>
+            </div>
             <div id="xp-info"></div>
-            <canvas id="xp-chart" width="400" height="200"></canvas>
         </div>
     </div>
 
