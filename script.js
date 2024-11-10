@@ -130,6 +130,9 @@ async function fetchUserData() {
                             totalUp
                             totalDown
                             campus
+                            xps {
+                                amount
+                            }
                         }
                     }
                 `
@@ -141,10 +144,12 @@ async function fetchUserData() {
         }
 
         const result = await response.json();
-        console.log("User data:", result);
+        console.log("User data and XP:", result);
 
-        if (result.data && result.data.user && result.data.user.length > 0) {
-            displayUserData(result.data.user[0]);
+        if (result.data && result.data.user && result.data.user[0]) {
+            const userData = result.data.user[0];
+            displayUserData(userData);
+            processAndDisplayXPData(userData.xps);
         } else {
             console.error("Unexpected response structure:", result);
         }
@@ -204,4 +209,45 @@ function createXPPieChart(totalUp, totalDown) {
     container.innerHTML = "";
     container.appendChild(svg);
     container.appendChild(legend);
+}
+
+function processAndDisplayXPData(xps) {
+    const totalXP = xps.reduce((sum, xp) => sum + xp.amount, 0);
+    const xpCount = xps.length;
+    const averageXP = xpCount > 0 ? totalXP / xpCount : 0;
+
+    const xpInfoDiv = document.getElementById('xp-info');
+    xpInfoDiv.innerHTML = `
+        <h3>XP Information</h3>
+        <p>Total XP: ${totalXP}</p>
+        <p>Number of XP entries: ${xpCount}</p>
+        <p>Average XP per entry: ${averageXP.toFixed(2)}</p>
+    `;
+}
+
+function createXPChart(xps) {
+    const ctx = document.getElementById('xp-chart').getContext('2d');
+    const amounts = xps.map(xp => xp.amount);
+    const labels = xps.map((_, index) => `Entry ${index + 1}`);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'XP Amount',
+                data: amounts,
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 }
