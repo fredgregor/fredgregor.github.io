@@ -47,62 +47,148 @@ function createXPPieChart(totalUp, totalDown) {
    container.appendChild(legend);
 }
 
-function createXPLineChart(transactions) {
-   const ctx = document.getElementById('xpLineChart').getContext('2d');
+function createXPLineChartSVG(transactions) {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const margin = { top: 40, right: 20, bottom: 60, left: 60 };
+    const svgWidth = 800;
+    const svgHeight = 400;
+    const width = svgWidth - margin.left - margin.right;
+    const height = svgHeight - margin.top - margin.bottom;
 
-   // Process data for the chart
-   const chartData = transactions.map(t => ({
-       x: new Date(t.createdAt),
-       y: t.amount,
-       label: t.path.split('/').pop() // Get the last part of the path
-   }));
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", svgHeight);
+    svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
-   // Calculate cumulative XP
-   let cumulativeXP = 0;
-   const cumulativeData = chartData.map(d => {
-       cumulativeXP += d.y;
-       return { x: d.x, y: cumulativeXP, label: d.label };
-   });
+    const g = document.createElementNS(svgNS, "g");
+    g.setAttribute("transform", `translate(${margin.left},${margin.top})`);
+    svg.appendChild(g);
 
-   // Create the chart
-   new Chart(ctx, {
-       type: 'line',
-       data: {
-           datasets: [{
-               label: 'Cumulative XP',
-               data: cumulativeData,
-               borderColor: 'rgb(75, 192, 192)',
-               tension: 0.1,
-               fill: false
-           }]
-       },
-       options: {
-           responsive: true,
-           scales: {
-               x: { 
-                   type: 'time', 
-                   time: { unit: 'day' }, 
-                   title: { display: true, text: 'Date' } 
-               },
-               y: { 
-                   title:{ display:true,text:'Cumulative XP' }, 
-                   beginAtZero:true 
-               }
-           },
-           plugins:{
-               tooltip:{
-                   callbacks:{
-                       label:function(context){
-                           return `${context.raw.label}: ${context.raw.y} XP`;
-                       }
-                   }
-               }
-           }
-       }
-   });
+    // Sort transactions by date
+    transactions.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-   // Display total XP
-   const totalXP = cumulativeData[cumulativeData.length - 1].y;
-   const xpInfoDiv= document.getElementById('xp-info');
-   xpInfoDiv.innerHTML= `<h3>Total XP:${totalXP}</h3>`;
+    // Calculate scales
+    const xScale = (date) => {
+        const minDate = new Date(transactions[0].createdAt);
+        const maxDate = new Date(transactions[transactions.length - 1].createdAt);
+        return ((date - minDate) / (maxDate - minDate)) * width;
+    };
+    const yScale = (amount) => height - (amount / Math.max(...transactions.map(t => t.amount))) * height;
+
+    // Create x-axis
+    const xAxis = document.createElementNS(svgNS, "line");
+    xAxis.setAttribute("x1", 0);
+    xAxis.setAttribute("y1", height);
+    xAxis.setAttribute("x2", width);
+    xAxis.setAttribute("y2", height);
+    xAxis.setAttribute("stroke", "black");
+    g.appendChild(xAxis);
+
+    // Create y-axis
+    const yAxis = document.createElementNS(svgNS, "line");
+    yAxis.setAttribute("x1", 0);
+    yAxis.setAttribute("y1", 0);
+    yAxis.setAttribute("x2", 0);
+    yAxis.setAttribute("y2", height);
+    yAxis.setAttribute("stroke", "black");
+    g.appendChild(yAxis);
+
+    // Create y-axis ticks and labels
+    const yTicks = 8; // Number of ticks on y-axis
+    for (let i = 0; i <= yTicks; i++) {
+        const y = (i / yTicks) * height;
+        const xpAmount = Math.round((1 - i / yTicks) * Math.max(...transactions.map(t => t.amount)));
+
+        // Create tick
+        const tick = document.createElementNS(svgNS, "line");
+        tick.setAttribute("x1", -5);
+        tick.setAttribute("y1", y);
+        tick.setAttribute("x2", 0);
+        tick.setAttribute("y2", y);
+        tick.setAttribute("stroke", "black");
+        g.appendChild(tick);
+
+        // Create label
+        const label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", -10);
+        label.setAttribute("y", y);
+        label.setAttribute("text-anchor", "end");
+        label.setAttribute("dominant-baseline", "middle");
+        label.setAttribute("font-size", "10");
+        label.textContent = xpAmount;
+        g.appendChild(label);
+    }
+
+    // Create line path
+    const linePath = transactions.map((t, index) => 
+        `${index === 0 ? 'M' : 'L'} ${xScale(new Date(t.createdAt))} ${yScale(t.amount)}`
+    ).join(' ');
+
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", linePath);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "#4CAF50");
+    path.setAttribute("stroke-width", "2");
+    g.appendChild(path);
+
+    // Add data points and project name labels
+    transactions.forEach((t, index) => {
+        const x = xScale(new Date(t.createdAt));
+        const y = yScale(t.amount);
+
+        // Data point
+        const circle = document.createElementNS(svgNS, "circle");
+        circle.setAttribute("cx", x);
+        circle.setAttribute("cy", y);
+        circle.setAttribute("r", "3");
+        circle.setAttribute("fill", "#4CAF50");
+        g.appendChild(circle);
+
+        // Project name label
+        const text = document.createElementNS(svgNS, "text");
+        text.setAttribute("x", x);
+        text.setAttribute("y", y - 10);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("font-size", "8");
+        text.textContent = t.path.split('/').pop();
+        g.appendChild(text);
+
+        // Date label
+        const dateText = document.createElementNS(svgNS, "text");
+        dateText.setAttribute("x", x);
+        dateText.setAttribute("y", height + 20);
+        dateText.setAttribute("text-anchor", "middle");
+        dateText.setAttribute("font-size", "8");
+        dateText.textContent = new Date(t.createdAt).toLocaleDateString();
+        g.appendChild(dateText);
+    });
+
+   // Title for the chart
+   const titleText = document.createElementNS(svgNS, "text");
+   titleText.setAttribute("x", width / 2); // Centered horizontally
+   titleText.setAttribute("y", -10); // Positioned above the chart area
+   titleText.setAttribute("text-anchor", "middle"); 
+   titleText.setAttribute("font-size", "16"); 
+   titleText.textContent = "XP per Project"; 
+   g.appendChild(titleText); 
+
+   // X-axis label
+   const xLabel = document.createElementNS(svgNS, "text");
+   xLabel.setAttribute("x", width / 2);
+   xLabel.setAttribute("y", height + 50);
+   xLabel.setAttribute("text-anchor", "middle");
+   xLabel.textContent = "Date";
+   g.appendChild(xLabel);
+
+   // Y-axis label
+   const yLabel = document.createElementNS(svgNS, "text");
+   yLabel.setAttribute("transform", `rotate(-90) translate(${-height/2}, ${-margin.left + 20})`);
+   yLabel.setAttribute("text-anchor", "middle");
+   yLabel.textContent = "XP Amount";
+   g.appendChild(yLabel);
+
+   const container = document.getElementById("xp-line-chart-container");
+   container.innerHTML = "";
+   container.appendChild(svg);
 }

@@ -89,7 +89,7 @@ async function fetchXPData() {
         console.log("XP data:", result);
 
         if (result.data && result.data.transaction) {
-            createXPLineChart(result.data.transaction);
+            createXPLineChartSVG(result.data.transaction);
         } else {
             console.error("Unexpected response structure:", result);
         }
